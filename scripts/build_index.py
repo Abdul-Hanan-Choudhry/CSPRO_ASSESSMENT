@@ -19,6 +19,7 @@ from qdrant_client import models
 from app.clients.embeddings import Embedder
 from app.clients.qdrant_store import DENSE, SPARSE, QdrantStore
 from app.config import Settings, get_settings
+from app.errors import VectorStoreUnavailableError
 from app.records import load_records
 from app.schemas import SourceRecord
 from app.services.indexing import index_records, integrity_problems
@@ -90,6 +91,10 @@ def main() -> None:
 
     settings = get_settings()
     store = QdrantStore(settings)
+    try:
+        store.ping()
+    except VectorStoreUnavailableError as exc:
+        raise SystemExit(f"ERROR: cannot open vector store: {exc.__cause__ or exc}") from None
     try:
         if args.cmd == "seed":
             seed(store, Embedder(settings), settings)

@@ -6,8 +6,8 @@ from app.records import load_records
 from app.services.fusion import fuse, legacy_naive, rrf
 from app.services.indexing import chunk_text, integrity_problems, point_id
 from app.services.retrieval import Chunk, Retriever, drop_superseded
-from scripts.build_index import V1, V2
-from tests.conftest import C1001
+from scripts.build_index import V1, V2, point_alias_checked
+from tests.conftest import C1001, C1002
 
 CSV_LIMIT_Q = "What is the CSV export row limit?"
 
@@ -76,6 +76,26 @@ def test_integrity_check_rejects_v1_and_accepts_v2(store):
     records = load_records()
     assert integrity_problems(store, V1, records)
     assert integrity_problems(store, V2, records) == []
+
+
+def test_checked_alias_swap_refuses_corrupt_collection(live_store, settings):
+    with pytest.raises(SystemExit):
+        point_alias_checked(live_store, settings, V1, load_records())
+    assert live_store.resolve_alias(settings.collection_alias) == V2
+
+
+def test_legacy_index_leaks_across_tenants_and_v2_does_not(retriever, live_store, records):
+    """Mislabelled owner metadata defeats the payload filter: why the integrity gate exists."""
+    c1001_texts = [r.text for r in records.values() if r.customer_id == "C-1001"]
+
+    def leaked_chunks() -> int:
+        chunks = retriever.retrieve("invoice charged twice", C1002, top_k=5).chunks
+        return sum(any(c.text in t for t in c1001_texts) for c in chunks)
+
+    live_store.point_alias("kb_live", V1)
+    on_v1 = leaked_chunks()
+    live_store.point_alias("kb_live", V2)
+    assert on_v1 > 0 and leaked_chunks() == 0
 
 
 def test_superseded_article_dropped_when_successor_retrieved(retriever):
