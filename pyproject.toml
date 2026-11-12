@@ -1,0 +1,20 @@
+[project]
+name = "support-rag"
+version = "0.1.0"
+description = "Local Llama support bot with permission-aware hybrid RAG and verified citations"
+requires-python = ">=3.11"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = [".venv", ".qdrant", ".cache"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+markers = ["integration: needs a running Ollama server with the configured model"]
+# Integration tests are opt-in: `pytest -m integration` overrides this default.
+addopts = "-m 'not integration' -q"
