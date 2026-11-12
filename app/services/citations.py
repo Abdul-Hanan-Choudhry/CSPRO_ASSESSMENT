@@ -43,7 +43,11 @@ def citation_problem(citation: Citation, shown: Mapping[str, Sequence[str]]) -> 
 
 def verify_answer(answer: LLMAnswer, shown: Mapping[str, Sequence[str]]) -> Verification:
     rejected = [
-        RejectedCitation(source_id=c.source_id, reason=problem)
+        # An unknown source_id is model output the caller was never shown; it could be a real
+        # identifier from another tenant, so it is never echoed back.
+        RejectedCitation(
+            source_id=c.source_id if problem != "unknown_source" else "redacted", reason=problem
+        )
         for c in answer.citations
         if (problem := citation_problem(c, shown))
     ]

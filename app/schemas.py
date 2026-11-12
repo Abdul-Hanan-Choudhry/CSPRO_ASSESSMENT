@@ -78,6 +78,14 @@ class TicketCreated(BaseModel):
     injection_flags: list[str]
 
 
+class TicketView(BaseModel):
+    ticket_id: str
+    customer_id: str
+    subject: str
+    body: str
+    updated_at: str
+
+
 class AskRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 

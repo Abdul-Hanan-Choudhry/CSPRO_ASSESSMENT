@@ -10,6 +10,13 @@ class AppError(Exception):
         self.message = message
 
 
+class InvalidRequestError(AppError):
+    """Well-formed input that violates a business rule (schema errors are handled by FastAPI)."""
+
+    status_code = 422
+    code = "invalid_request"
+
+
 class AuthenticationError(AppError):
     status_code = 401
     code = "unauthenticated"

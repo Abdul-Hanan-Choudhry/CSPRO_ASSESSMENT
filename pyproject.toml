@@ -18,3 +18,10 @@ pythonpath = ["."]
 markers = ["integration: needs a running Ollama server with the configured model"]
 # Integration tests are opt-in: `pytest -m integration` overrides this default.
 addopts = "-m 'not integration' -q"
+filterwarnings = [
+    # Third-party notices unrelated to our code: Starlette's TestClient transport deprecation and
+    # qdrant-client's version probe against the deliberately unreachable server in test_failures.
+    "ignore::DeprecationWarning:starlette.testclient",
+    "ignore:Using `httpx` with `starlette.testclient`",
+    "ignore:Failed to obtain server version",
+]
