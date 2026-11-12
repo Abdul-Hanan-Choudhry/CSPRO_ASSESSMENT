@@ -4,7 +4,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -15,6 +15,13 @@ class Principal(BaseModel):
 
     customer_id: str | None
     role: Literal["customer", "admin"]
+
+    @model_validator(mode="after")
+    def _customers_have_an_id(self) -> "Principal":
+        # A customer key without customer_id would build a filter matching customer_id=None.
+        if self.role == "customer" and not self.customer_id:
+            raise ValueError("customer principals require customer_id")
+        return self
 
 
 # Synthetic demo keys so a fresh clone runs without configuration. They grant access only to
