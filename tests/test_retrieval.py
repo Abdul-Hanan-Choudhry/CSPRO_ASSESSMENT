@@ -3,9 +3,10 @@
 import pytest
 
 from app.records import load_records
+from app.services.chunks import Chunk
 from app.services.fusion import fuse, legacy_naive, rrf
 from app.services.indexing import chunk_text, integrity_problems, point_id
-from app.services.retrieval import Chunk, Retriever, drop_superseded
+from app.services.retrieval import Retriever, drop_superseded
 from scripts.build_index import V1, V2, point_alias_checked
 from tests.conftest import C1001, C1002
 

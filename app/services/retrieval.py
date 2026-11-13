@@ -7,23 +7,11 @@ from app.clients.embeddings import Embedder
 from app.clients.qdrant_store import DENSE, SPARSE, Hit, QdrantStore
 from app.config import Principal, Settings
 from app.errors import VectorStoreUnavailableError
+from app.services.chunks import Chunk
 from app.services.fusion import FusionMethod, fuse
 from app.services.permissions import can_read, qdrant_filter
 
 log = logging.getLogger(__name__)
-
-
-@dataclass(frozen=True)
-class Chunk:
-    source_id: str
-    chunk_index: int
-    title: str
-    text: str
-    kind: str
-    status: str
-    updated_at: str
-    superseded_by: str | None
-    score: float
 
 
 @dataclass(frozen=True)
@@ -56,6 +44,10 @@ class Retriever:
         access = qdrant_filter(principal)
         n = s.candidates_per_retriever
         dense = self._store.search(collection, query.dense, DENSE, access, n)
+        if not dense or dense[0].score < s.min_dense_score:
+            # Nothing semantically close: small models otherwise "answer" from an irrelevant
+            # chunk with a verbatim (so verifier-passing) but off-topic citation.
+            return RetrievalResult(collection, method, [], ["below_relevance_threshold"])
         sparse = self._store.search(collection, query.sparse, SPARSE, access, n)
 
         hits = {h.point_id: h for h in dense + sparse}

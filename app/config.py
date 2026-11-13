@@ -45,6 +45,9 @@ class Settings(BaseSettings):
     rrf_k: int = 60
     naive_bm25_weight: float = 0.5
     candidates_per_retriever: int = 20
+    # Abstain when the best permitted dense match is weaker than this (bge-small cosine).
+    # Calibrated on the synthetic set: relevant questions scored >= 0.815, unanswerable <= 0.693.
+    min_dense_score: float = 0.75
 
     dense_model: str = "BAAI/bge-small-en-v1.5"
     sparse_model: str = "Qdrant/bm25"

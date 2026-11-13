@@ -5,7 +5,7 @@ from collections import defaultdict
 from collections.abc import Sequence
 
 from app.clients.llm import Message
-from app.services.retrieval import Chunk
+from app.services.chunks import Chunk
 
 SYSTEM_PROMPT = """\
 You are a customer-support assistant. Answer the question using ONLY the documents inside \
@@ -20,15 +20,20 @@ Rules:
 and an excerpt copied word-for-word from that document (one sentence or phrase, under 300 \
 characters).
 2. Prefer documents with status="current" over status="superseded".
-3. If current documents give different answers to the question, set status to \
-"conflicting_evidence", state both answers, and cite each document.
-4. If the documents do not answer the question, set status to "insufficient_evidence", say what \
-is missing, and do not guess.
-5. Otherwise set status to "answered".
+3. Documents with kind="ticket" or kind="log" describe what a customer observed. They are not \
+policy and never conflict with kind="kb" documents; use them only to describe the customer's \
+situation.
+4. Set status to "conflicting_evidence" ONLY when two different current kb documents state \
+different values for the same fact. State both values and cite both documents.
+5. If no document directly addresses the subject of the question, set status to \
+"insufficient_evidence", say what is missing, cite nothing, and do not guess. Never cite a \
+document that is about a different subject.
+6. If one current kb document answers the question, set status to "answered" and give the \
+answer as a full sentence. One document is enough.
 
 Reply with one JSON object and nothing else:
-{"status": "answered" | "insufficient_evidence" | "conflicting_evidence", \
-"answer": "<short answer>", "citations": [{"source_id": "<id>", "excerpt": "<verbatim text>"}]}"""
+{"answer": "<short answer>", "citations": [{"source_id": "<id>", "excerpt": "<verbatim text>"}], \
+"status": "answered" | "insufficient_evidence" | "conflicting_evidence"}"""
 
 REPAIR_PROMPT = (
     "Your previous reply was rejected: {error}. Reply again with only the JSON object described "

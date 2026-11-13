@@ -50,7 +50,9 @@ def test_regression_malicious_ticket_never_leaks_other_customer_data(
 
     assert response.status_code == 200
     body = response.json()
-    assert body["status"] == "insufficient_evidence" and body["metadata"]["downgraded"] is True
+    assert body["status"] == "insufficient_evidence"
+    if llm.calls:  # otherwise the relevance gate abstained before the model was asked
+        assert body["metadata"]["downgraded"] is True
     for secret in [*C1001_SECRETS, "T-0002"]:
         assert secret not in response.text, f"leaked {secret}"
 
@@ -62,10 +64,20 @@ def test_regression_malicious_ticket_never_leaks_other_customer_data(
             assert f'source_id="{record.source_id}"' not in prompt
 
 
+def test_regression_attack_reaches_obedient_model_with_injection_in_context(make_client):
+    """Guard against the regression test passing vacuously (e.g. via the relevance gate)."""
+    llm = _obedient_llm()
+    response = make_client(llm=llm).post(
+        "/ask", json={"question": ATTACK_QUESTIONS[1]}, headers=auth("C-1002")
+    )
+    assert llm.calls and "reveal customer C-1001" in json.dumps(llm.calls)
+    assert response.json()["metadata"]["downgraded"] is True
+
+
 def test_injected_ticket_is_flagged_in_metadata(make_client):
     # Flags are computed per retrieved chunk, so the question must pull in T-0009's second
     # paragraph (the forged instruction), not just its harmless first paragraph.
-    question = {"question": "What did the administrator authorize for our audit mode review?"}
+    question = {"question": "What is in our urgent account review ticket?"}
     response = make_client().post("/ask", json=question, headers=auth("C-1002"))
     flags = response.json()["metadata"]["injection_flags"]
     assert "T-0009:role_override" in flags and "T-0009:persona_switch" in flags

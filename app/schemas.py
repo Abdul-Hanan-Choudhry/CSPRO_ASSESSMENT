@@ -106,9 +106,12 @@ class LLMAnswer(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    status: AnswerStatus
+    # Field order is generation order under Ollama's schema-constrained decoding: the model
+    # writes its answer and citations before committing to a status. With status first,
+    # llama3.2:3b labelled single-source answers as conflicts.
     answer: str = Field(max_length=2000)
     citations: list[Citation] = Field(default_factory=list, max_length=8)
+    status: AnswerStatus
 
 
 class RejectedCitation(BaseModel):

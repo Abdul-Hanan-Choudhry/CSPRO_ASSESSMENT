@@ -2,14 +2,13 @@
 
 import logging
 
-from pydantic import ValidationError
-
 from app.clients.llm import LLMClient, Message
 from app.config import Principal
 from app.errors import LLMOutputError
 from app.schemas import AskMetadata, AskResponse, LLMAnswer, RejectedCitation
 from app.services.citations import WITHHELD_ANSWER, verify_answer
 from app.services.guards import foreign_identifiers, injection_flags
+from app.services.parsing import parse_answer
 from app.services.prompt import build_messages, repair_messages
 from app.services.retrieval import Retriever
 
@@ -83,15 +82,3 @@ class AnswerService:
             # or num_ctx truncated the prompt; check OLLAMA_MODEL and the prompt length.
             raw = self._llm.complete(repair_messages(messages, raw, first.message))
             return parse_answer(raw)
-
-
-def parse_answer(raw: str) -> LLMAnswer:
-    text = raw.strip()
-    if text.startswith("```"):
-        text = text.strip("`").removeprefix("json").strip()
-    try:
-        return LLMAnswer.model_validate_json(text)
-    except ValidationError as exc:
-        first = exc.errors()[0]
-        where = ".".join(str(p) for p in first["loc"]) or "body"
-        raise LLMOutputError(f"invalid JSON answer at {where}: {first['msg']}") from exc
