@@ -8,8 +8,12 @@ __pycache__/
 .cache/
 .pytest_cache/
 .ruff_cache/
-# Model weights and adapters are reproducible from finetune/; never commit them.
+# Training output and large weights stay out of git. The one trained LoRA adapter that the README
+# reports on is committed explicitly under finetune/checkpoint/ (33 MB).
 finetune/outputs/
 *.safetensors
+!finetune/checkpoint/**/*.safetensors
 *.bin
 *.gguf
+# Local screen recordings (sent separately, not part of the repository).
+docs/demo/

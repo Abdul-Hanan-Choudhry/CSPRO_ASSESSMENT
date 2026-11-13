@@ -131,7 +131,9 @@ def serve() -> int:
 TRAIN_PY = ROOT / (
     ".venv-train/Scripts/python.exe" if os.name == "nt" else ".venv-train/bin/python"
 )
-ADAPTER = ROOT / "finetune/outputs/qwen2.5-0.5b-support-lora/adapter"
+TRAINED = ROOT / "finetune/outputs/qwen2.5-0.5b-support-lora/adapter"  # written by train.py
+COMMITTED = ROOT / "finetune/checkpoint/qwen2.5-0.5b-support-lora"  # shipped in the repository
+ADAPTER = TRAINED if TRAINED.exists() else COMMITTED
 
 
 def evaluate(args: list[str]) -> int:
