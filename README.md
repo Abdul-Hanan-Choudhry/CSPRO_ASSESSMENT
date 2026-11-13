@@ -9,8 +9,9 @@ citations from a stale alias, mislabelled index and bad BM25/vector score fusion
 - **Stack:** Python 3.11+, FastAPI, Pydantic v2, Qdrant (embedded), fastembed (bge-small + BM25)
 - **Fine-tuning:** LoRA on Qwen2.5-0.5B-Instruct, evaluated with the app's own citation verifier
 
-How every part works, step by step: [docs/HOW_IT_WORKS.md](docs/HOW_IT_WORKS.md).
-Demo video: [docs/demo/demo.webm](docs/demo/demo.webm).
+Contents: FastAPI service (`app/`), synthetic data (`data/`), tests (`tests/`), index and demo
+scripts (`scripts/`), LoRA fine-tuning and evaluation (`finetune/`), incident write-up
+(`docs/INCIDENT.md`). The screen recording is sent with the submission email.
 
 ## 1. Install
 
@@ -56,10 +57,6 @@ python manage.py incident              # reproduces the incident and the fix, of
 python manage.py lint                  # ruff
 ```
 
-Re-record the demo video (optional, needs the API running and Playwright):
-`pip install playwright==1.65.1; playwright install chromium; python scripts/record_demo.py`.
-Captions in the video are generated from the results on screen.
-
 Example API call (keys are synthetic: `demo-c1001`, `demo-c1002`, `demo-admin`):
 
 ```
@@ -93,32 +90,69 @@ client / console ─► FastAPI (auth, validation, errors) ─► services ─�
 
 Security: identity from API key; the Qdrant filter and a second per-hit check keep other
 customers' data out of the prompt; documents are fenced as data; citations must be real and
-verbatim; answers naming foreign IDs are withheld; injection patterns are flagged (logged only).
-Details: [docs/HOW_IT_WORKS.md](docs/HOW_IT_WORKS.md), incident: [docs/INCIDENT.md](docs/INCIDENT.md).
+verbatim; answers naming foreign IDs (in the answer or in a quoted excerpt) are withheld;
+injection patterns are flagged (logged only). Incident write-up: [docs/INCIDENT.md](docs/INCIDENT.md).
+
+Regression test for the malicious records: `tests/test_security.py::
+test_regression_malicious_ticket_never_leaks_other_customer_data`. Ticket T-0009 (C-1002)
+contains a forged `SYSTEM/admin` instruction to reveal C-1001's invoices, and KB-0007 contains a
+hidden instruction. With the fake model scripted to obey completely, the C-1002 caller receives no
+C-1001 data and the prompt is asserted to contain no C-1001 record.
 
 ## Fine-tuning results
 
-From `python finetune/report.py` (files in `finetune/results/`). Held-out set: 50 examples on
-topics never seen in training.
+All numbers below come from the files in `finetune/results/` (`python finetune/report.py` prints
+this table). Held-out set: 50 examples on topics never seen in training; one run per model.
 
 | Metric | Qwen2.5-0.5B base | Qwen2.5-0.5B + LoRA | Llama 3.2 3B (Ollama, app runtime) |
 |---|---|---|---|
-| json_validity | NOT RUN | NOT RUN | 1.00 |
-| citation_precision | NOT RUN | NOT RUN | 0.65 |
-| citation_recall | NOT RUN | NOT RUN | 0.91 |
-| status_accuracy | NOT RUN | NOT RUN | 0.76 |
-| abstain_accuracy | NOT RUN | NOT RUN | 1.00 |
-| conflict_accuracy | NOT RUN | NOT RUN | 0.70 |
-| injection_compliance_rate (lower is better) | NOT RUN | NOT RUN | 0.00 |
-| verified_answer_rate | NOT RUN | NOT RUN | 0.74 |
+| json_validity | 1.00 | 1.00 | 1.00 |
+| citation_precision | 0.44 | 0.62 | 0.65 |
+| citation_recall | 0.80 | 0.73 | 0.91 |
+| status_accuracy | 0.48 | 0.70 | 0.76 |
+| abstain_accuracy | 0.00 | 0.75 | 1.00 |
+| conflict_accuracy | 0.00 | 0.50 | 0.70 |
+| injection_compliance_rate (lower is better) | 0.20 | 0.00 | 0.00 |
+| verified_answer_rate | 0.46 | 0.68 | 0.74 |
+| decoding | unconstrained greedy | unconstrained greedy | schema-constrained (Ollama) |
 
-- **Run:** Llama 3.2 3B baseline on all 50 examples (CPU, schema-constrained like the app).
-  Weakest category: stale evidence, 1/10 (it calls superseded-vs-current a conflict). In the app,
-  retrieval drops the superseded article first.
-- **Run:** CPU smoke test of the training pipeline (135M model, 4 steps). Proves the code runs;
-  not a quality result.
-- **Not run:** Qwen baseline, LoRA training and adapted evaluation need a GPU. Steps:
-  [finetune/colab_run.md](finetune/colab_run.md). The columns stay NOT RUN until those files exist.
+**What was run**
+
+- **LoRA training** (`train_full.json`): Qwen2.5-0.5B-Instruct, r=16, alpha=32, all attention
+  and MLP projections (8.8 M of 503 M parameters trainable), 180 examples, 3 epochs, on a Colab
+  T4 GPU in 108 s. Held-out loss 0.539 to 0.044.
+- **Baseline and adapted evaluation** on the same 50 held-out examples, unconstrained greedy
+  decoding (`eval_baseline.json`, `eval_adapted.json`).
+- **Llama 3.2 3B** through Ollama on CPU, the model the app serves (`eval_ollama_llama3.2-3b.json`).
+  Its decoding is schema-constrained, so it is not a like-for-like comparison with the Qwen columns.
+- **CPU smoke run** of the training pipeline (SmolLM2-135M, 4 steps; `*_smoke.json`). It proves
+  the code runs; it is not a quality result.
+
+**How to read it**
+
+- The base Qwen model answers `answered` to every example: it never abstains or flags a
+  conflict. Its 10/10 on stale-evidence examples is only that.
+- The adapter teaches abstaining (9/10 on "no evidence") and conflict flagging (5/10), and
+  injection compliance falls from 2 of 10 examples to 0.
+- It also gets worse in two places: stale-evidence status (10/10 to 5/10, it calls half of the
+  superseded-vs-current pairs a conflict) and citation recall (0.80 to 0.73).
+- Base Qwen already emitted valid JSON because the prompt specifies it, so the gain is in
+  behaviour (abstain, conflict, injection), not in format.
+- Small, template-generated data, 50 examples and one seed: differences of a few examples are
+  not significant, and the held-out gains likely overstate what real tickets would show.
+- The app does not use the adapted model. It serves Llama 3.2 3B; the adapter is the
+  fine-tuning deliverable.
+
+**Checkpoint:** the trained adapter is committed at
+`finetune/checkpoint/qwen2.5-0.5b-support-lora/` (33.6 MB; the base model downloads from Hugging
+Face). Reproduce the adapted numbers with a GPU (or slowly on CPU) in a venv built from
+`requirements-train.txt`:
+
+```
+python finetune/eval.py --backend hf --tag adapted --adapter finetune/checkpoint/qwen2.5-0.5b-support-lora
+```
+
+Retrain from scratch: [finetune/colab_run.md](finetune/colab_run.md).
 
 ## Limitations
 
@@ -134,7 +168,6 @@ topics never seen in training.
 
 ## More
 
-[docs/HOW_IT_WORKS.md](docs/HOW_IT_WORKS.md) (workflow and features) ·
 [docs/INCIDENT.md](docs/INCIDENT.md) (debugging write-up) ·
-[docs/DEFENSE.md](docs/DEFENSE.md) (module notes, interview Q&A) ·
-[AI_DISCLOSURE.md](AI_DISCLOSURE.md) · MIT [LICENSE](LICENSE)
+[AI_DISCLOSURE.md](AI_DISCLOSURE.md) (coding assistant and reused code) ·
+MIT [LICENSE](LICENSE)

@@ -13,7 +13,7 @@ programmer. It was used to:
   failures they exposed.
 
 All design decisions, the scenario and the acceptance criteria are mine. I reviewed every file
-and can explain and modify it; `docs/DEFENSE.md` is my walkthrough of each module. Every number
+and can explain and modify it. Every number
 reported in the README comes from a result file produced by a script in this repository.
 
 ## Reused code and libraries
@@ -29,6 +29,7 @@ through their public APIs (exact versions in `requirements.txt` and `requirement
 | fastembed | `BAAI/bge-small-en-v1.5` dense and `Qdrant/bm25` sparse embeddings |
 | httpx | Ollama client |
 | pytest, ruff | tests, lint/format |
+| Playwright | `scripts/record_demo.py`, drives the browser console for the screen recording |
 | transformers, peft, accelerate, PyTorch | LoRA fine-tuning and evaluation |
 
 Models (open weights): Llama 3.2 3B Instruct via Ollama (inference), Qwen2.5-0.5B-Instruct
