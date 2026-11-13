@@ -57,7 +57,10 @@ class AnswerService:
         answer = verification.answer
         rejected = list(verification.rejected)
 
-        leaked = foreign_identifiers(answer.answer, principal, shown)
+        # Excerpts are checked too: a verbatim quote of a poisoned public document can still
+        # carry another customer's ID (seen live with KB-0007 under the C-1002 attack).
+        returned_text = " ".join([answer.answer, *(c.excerpt for c in answer.citations)])
+        leaked = foreign_identifiers(returned_text, principal, shown)
         if leaked:
             log.error("answer withheld: foreign identifiers", extra={"ids": leaked})
             rejected.append(RejectedCitation(source_id="-", reason="foreign_identifier_in_answer"))

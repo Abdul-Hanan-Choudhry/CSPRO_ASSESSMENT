@@ -94,3 +94,10 @@ in the response echoed the model's cited `source_id` even when it was unknown to
 With an LLM scripted to obey the forged ticket, that returned `T-0002` (a C-1001 ticket ID) to
 C-1002. Unknown source IDs are now redacted (`app/services/citations.py`), and
 `test_security.py::test_regression_malicious_ticket_never_leaks_other_customer_data` covers it.
+
+A live run against llama3.2:3b found a second gap. Asked the C-1002 attack question, the model
+returned `conflicting_evidence` citing KB-0007's hidden instruction verbatim, which contains the
+string "C-1001". The citation was real and verbatim, so the verifier accepted it, and the output
+guard only scanned the answer text. No C-1001 data was exposed (the string comes from a public
+article), but a customer response must not carry another customer's identifier. The guard now
+scans citation excerpts too; `test_citation_quoting_foreign_customer_id_is_withheld` covers it.
