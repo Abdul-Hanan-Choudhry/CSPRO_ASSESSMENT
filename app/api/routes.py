@@ -12,11 +12,13 @@ from app.schemas import (
     AskResponse,
     CollectionsResponse,
     HealthResponse,
+    RetrievalDebugRequest,
+    RetrievalDebugResponse,
     TicketCreate,
     TicketCreated,
     TicketView,
 )
-from app.services.status import check_health, describe_collections
+from app.services.status import check_health, debug_retrieve, describe_collections
 
 router = APIRouter()
 ServicesDep = Annotated[Services, Depends(get_services)]
@@ -51,3 +53,12 @@ def ask(body: AskRequest, request: Request, principal: PrincipalDep, services: S
 )
 def admin_collections(services: ServicesDep) -> CollectionsResponse:
     return describe_collections(services.store, services.settings.collection_alias)
+
+
+@router.post(
+    "/admin/retrieve",
+    response_model=RetrievalDebugResponse,
+    dependencies=[Depends(require_admin)],
+)
+def admin_retrieve(body: RetrievalDebugRequest, services: ServicesDep) -> RetrievalDebugResponse:
+    return debug_retrieve(services.retriever, body)

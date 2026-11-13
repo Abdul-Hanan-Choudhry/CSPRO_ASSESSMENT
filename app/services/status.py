@@ -3,8 +3,18 @@
 from app import __version__
 from app.clients.llm import LLMClient
 from app.clients.qdrant_store import QdrantStore
+from app.config import Principal
 from app.errors import AppError
-from app.schemas import CollectionInfo, CollectionsResponse, DependencyStatus, HealthResponse
+from app.schemas import (
+    CollectionInfo,
+    CollectionsResponse,
+    DependencyStatus,
+    HealthResponse,
+    RetrievalDebugRequest,
+    RetrievalDebugResponse,
+    RetrievedChunk,
+)
+from app.services.retrieval import Retriever
 
 
 def check_health(store: QdrantStore, llm: LLMClient, alias: str) -> HealthResponse:
@@ -27,6 +37,32 @@ def check_health(store: QdrantStore, llm: LLMClient, alias: str) -> HealthRespon
         active_collection=active,
         vector_store=vector,
         llm=llm_status,
+    )
+
+
+def debug_retrieve(retriever: Retriever, body: RetrievalDebugRequest) -> RetrievalDebugResponse:
+    """Retrieval only, as a chosen customer (or admin), so fusion and filters can be inspected."""
+    principal = (
+        Principal(customer_id=body.as_customer, role="customer")
+        if body.as_customer
+        else Principal(customer_id=None, role="admin")
+    )
+    result = retriever.retrieve(body.question, principal, body.top_k, fusion=body.fusion)
+    return RetrievalDebugResponse(
+        collection=result.collection,
+        fusion=result.fusion,
+        chunks=[
+            RetrievedChunk(
+                source_id=c.source_id,
+                chunk_index=c.chunk_index,
+                kind=c.kind,
+                status=c.status,
+                score=round(c.score, 4),
+                text=c.text,
+            )
+            for c in result.chunks
+        ],
+        excluded=result.excluded,
     )
 
 

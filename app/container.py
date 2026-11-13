@@ -16,6 +16,7 @@ class Services:
     settings: Settings
     store: QdrantStore
     llm: LLMClient
+    retriever: Retriever
     answers: AnswerService
     tickets: TicketService
 
@@ -35,6 +36,7 @@ def build_services(
         settings=settings,
         store=store,
         llm=llm,
+        retriever=retriever,
         answers=AnswerService(retriever, llm),
         tickets=TicketService(store, embedder, settings),
     )

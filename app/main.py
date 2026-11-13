@@ -5,10 +5,12 @@ import re
 import time
 import uuid
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app import __version__
@@ -19,6 +21,7 @@ from app.errors import AppError
 from app.observability import configure_logging, request_id_var
 
 log = logging.getLogger("app")
+STATIC_DIR = Path(__file__).resolve().parent / "static"
 _CLIENT_REQUEST_ID = re.compile(r"^[A-Za-z0-9-]{1,64}$")
 
 
@@ -37,6 +40,8 @@ def create_app(settings: Settings | None = None, services: Services | None = Non
     app.middleware("http")(_request_context)
     _register_error_handlers(app)
     app.include_router(router)
+    # Test console: static HTML that calls this same API, so it needs no CORS or extra server.
+    app.mount("/ui", StaticFiles(directory=STATIC_DIR, html=True), name="ui")
     return app
 
 

@@ -163,6 +163,33 @@ class CollectionsResponse(BaseModel):
     collections: list[CollectionInfo]
 
 
+class RetrievalDebugRequest(BaseModel):
+    """Admin-only: run retrieval as a given customer with a chosen fusion method, no LLM."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    question: str = Field(min_length=3, max_length=MAX_QUESTION_CHARS)
+    as_customer: str | None = Field(default=None, pattern=CUSTOMER_ID_PATTERN)
+    fusion: Literal["rrf", "legacy_naive"] = "rrf"
+    top_k: int = Field(default=5, ge=1, le=10)
+
+
+class RetrievedChunk(BaseModel):
+    source_id: str
+    chunk_index: int
+    kind: str
+    status: str
+    score: float
+    text: str
+
+
+class RetrievalDebugResponse(BaseModel):
+    collection: str
+    fusion: str
+    chunks: list[RetrievedChunk]
+    excluded: list[str]
+
+
 class ErrorBody(BaseModel):
     code: str
     message: str
