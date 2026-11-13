@@ -1,4 +1,9 @@
- It was used to:
+# AI assistance and reused code
+
+## Coding assistant
+
+This repository was built with an AI coding assistant (Claude Code, Anthropic) used as a pair
+programmer. It was used to:
 
 - draft modules, tests, scripts and documentation from a written specification I provided
   (architecture, security model, incident scenario, evaluation metrics);
