@@ -1,0 +1,40 @@
+# LoRA SFT config. `full` is the real run (Colab/Kaggle T4); `smoke` overrides it for a CPU
+# pipeline check. Smoke output proves the code runs end to end; it is NOT a quality result.
+seed: 42
+data:
+  train: finetune/data/train.jsonl
+  heldout: finetune/data/heldout.jsonl
+
+full:
+  base_model: Qwen/Qwen2.5-0.5B-Instruct
+  output_dir: finetune/outputs/qwen2.5-0.5b-support-lora
+  max_seq_len: 1024
+  epochs: 3
+  max_steps: -1            # -1 = use epochs
+  batch_size: 4
+  grad_accum: 4            # effective batch 16
+  learning_rate: 2.0e-4
+  warmup_steps: 5
+  fp16: true
+  n_train: null            # null = all examples
+  n_eval: null
+
+smoke:
+  base_model: HuggingFaceTB/SmolLM2-135M-Instruct
+  output_dir: finetune/outputs/smoke
+  max_seq_len: 1024
+  epochs: 1
+  max_steps: 4
+  batch_size: 2
+  grad_accum: 1
+  learning_rate: 2.0e-4
+  warmup_steps: 0
+  fp16: false
+  n_train: 16
+  n_eval: 4
+
+lora:
+  r: 16
+  alpha: 32
+  dropout: 0.05
+  target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]

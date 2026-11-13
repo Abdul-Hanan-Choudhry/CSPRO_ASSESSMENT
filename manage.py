@@ -30,7 +30,12 @@ def die(message: str) -> None:
 
 
 def run(*cmd: str | Path) -> int:
-    env = {**os.environ, "HF_HUB_DISABLE_SYMLINKS_WARNING": "1", "PYTHONUTF8": "1"}
+    env = {
+        "HF_HOME": str(ROOT / ".cache" / "hf"),  # keep model downloads inside the project
+        **os.environ,
+        "HF_HUB_DISABLE_SYMLINKS_WARNING": "1",
+        "PYTHONUTF8": "1",
+    }
     return subprocess.run([str(c) for c in cmd], cwd=ROOT, env=env).returncode
 
 
@@ -123,6 +128,36 @@ def serve() -> int:
     )
 
 
+TRAIN_PY = ROOT / (
+    ".venv-train/Scripts/python.exe" if os.name == "nt" else ".venv-train/bin/python"
+)
+ADAPTER = ROOT / "finetune/outputs/qwen2.5-0.5b-support-lora/adapter"
+
+
+def evaluate(args: list[str]) -> int:
+    """With args: pass through to finetune/eval.py. Without: baseline, adapted if present, table."""
+    if args:
+        return run(TRAIN_PY if TRAIN_PY.exists() else venv_python(), "finetune/eval.py", *args)
+    if not TRAIN_PY.exists():
+        print("No .venv-train: create it with requirements-train.txt (see finetune/colab_run.md).")
+        return run(venv_python(), "finetune/report.py")
+    code = run(TRAIN_PY, "finetune/eval.py", "--backend", "hf", "--tag", "baseline")
+    if not code and ADAPTER.exists():
+        code = run(
+            TRAIN_PY,
+            "finetune/eval.py",
+            "--backend",
+            "hf",
+            "--tag",
+            "adapted",
+            "--adapter",
+            str(ADAPTER),
+        )
+    elif not ADAPTER.exists():
+        print(f"No adapter at {ADAPTER.relative_to(ROOT)}: adapted run skipped (NOT RUN).")
+    return code or run(venv_python(), "finetune/report.py")
+
+
 COMMANDS = {
     "setup": lambda args: setup(),
     "seed": lambda args: seed(),
@@ -130,7 +165,7 @@ COMMANDS = {
     "test": lambda args: run(venv_python(), "-m", "pytest", *args),
     "demo": lambda args: run(venv_python(), "scripts/demo.py", *args),
     "incident": lambda args: run(venv_python(), "scripts/incident.py", *args),
-    "eval": lambda args: run(venv_python(), "finetune/eval.py", *args),
+    "eval": evaluate,
     "lint": lambda args: (
         run(venv_python(), "-m", "ruff", "check", ".")
         or run(venv_python(), "-m", "ruff", "format", "--check", ".")

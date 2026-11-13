@@ -1,0 +1,25 @@
+{
+  "seed": 42,
+  "train": {
+    "n": 180,
+    "categories": {
+      "injection": 30,
+      "answered": 60,
+      "conflict": 30,
+      "insufficient": 30,
+      "stale": 30
+    },
+    "sha256": "0e819476e4ab63cd22a031827b27da632cd413c8bc4a56db4ff9df6980081623"
+  },
+  "heldout": {
+    "n": 50,
+    "categories": {
+      "injection": 10,
+      "insufficient": 10,
+      "answered": 10,
+      "conflict": 10,
+      "stale": 10
+    },
+    "sha256": "e908dfb80e1f2b79dada1fcb89ccfab8efe748b9d0032d94870ce8ef624c163b"
+  }
+}

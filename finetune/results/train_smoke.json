@@ -1,0 +1,110 @@
+{
+  "mode": "smoke",
+  "note": "smoke = pipeline check only, not a quality result",
+  "base_model": "HuggingFaceTB/SmolLM2-135M-Instruct",
+  "adapter_dir": "finetune\\outputs\\smoke\\adapter",
+  "config": {
+    "seed": 42,
+    "data": {
+      "train": "finetune/data/train.jsonl",
+      "heldout": "finetune/data/heldout.jsonl"
+    },
+    "lora": {
+      "r": 16,
+      "alpha": 32,
+      "dropout": 0.05,
+      "target_modules": [
+        "q_proj",
+        "k_proj",
+        "v_proj",
+        "o_proj",
+        "gate_proj",
+        "up_proj",
+        "down_proj"
+      ]
+    },
+    "mode": "smoke",
+    "base_model": "HuggingFaceTB/SmolLM2-135M-Instruct",
+    "output_dir": "finetune/outputs/smoke",
+    "max_seq_len": 1024,
+    "epochs": 1,
+    "max_steps": 4,
+    "batch_size": 2,
+    "grad_accum": 1,
+    "learning_rate": 0.0002,
+    "warmup_steps": 0,
+    "fp16": false,
+    "n_train": 16,
+    "n_eval": 4
+  },
+  "device": "cpu",
+  "trainable_params": 4884480,
+  "total_params": 139399488,
+  "n_train": 16,
+  "n_heldout": 4,
+  "skipped_too_long": {
+    "train": 0,
+    "heldout": 0
+  },
+  "heldout_loss_before": 1.2063246965408325,
+  "heldout_loss_after": 1.0083608627319336,
+  "train_runtime_s": 146.1,
+  "log_history": [
+    {
+      "loss": 0.9003939628601074,
+      "grad_norm": 0.9311944246292114,
+      "learning_rate": 0.0002,
+      "epoch": 0.125,
+      "step": 1
+    },
+    {
+      "loss": 0.9119430780410767,
+      "grad_norm": 0.9517722129821777,
+      "learning_rate": 0.00015000000000000001,
+      "epoch": 0.25,
+      "step": 2
+    },
+    {
+      "loss": 0.6770870685577393,
+      "grad_norm": 0.5881633162498474,
+      "learning_rate": 0.0001,
+      "epoch": 0.375,
+      "step": 3
+    },
+    {
+      "loss": 0.4142780900001526,
+      "grad_norm": 1.0088553428649902,
+      "learning_rate": 5e-05,
+      "epoch": 0.5,
+      "step": 4
+    },
+    {
+      "train_runtime": 145.6477,
+      "train_samples_per_second": 0.055,
+      "train_steps_per_second": 0.027,
+      "total_flos": 4111142335488.0,
+      "train_loss": 0.725925549864769,
+      "epoch": 0.5,
+      "step": 4
+    },
+    {
+      "eval_loss": 1.0083608627319336,
+      "eval_model_preparation_time": 0.0625,
+      "eval_runtime": 16.0981,
+      "eval_samples_per_second": 0.248,
+      "eval_steps_per_second": 0.124,
+      "epoch": 0.5,
+      "step": 4
+    }
+  ],
+  "timestamp": "2026-11-12T21:44:43+00:00",
+  "python": "3.12.4",
+  "platform": "Windows-11-10.0.26220-SP0",
+  "packages": {
+    "torch": "2.15.0+cpu",
+    "transformers": "5.22.2",
+    "peft": "0.21.2",
+    "accelerate": "1.15.0",
+    "httpx": "0.28.1"
+  }
+}

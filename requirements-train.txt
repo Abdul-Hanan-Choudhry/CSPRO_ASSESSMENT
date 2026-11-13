@@ -1,0 +1,15 @@
+# Fine-tuning and evaluation only (Colab T4 or a separate local venv).
+# Local CPU install used for the smoke run:
+#   pip install torch==2.15.0 --index-url https://download.pytorch.org/whl/cpu
+#   pip install -r requirements-train.txt
+torch==2.15.0
+transformers==5.22.2
+peft==0.21.2
+accelerate==1.15.0
+safetensors==0.8.0
+tokenizers==0.23.3
+PyYAML==6.0.3
+# Shared app modules used by eval.py (parser, verifier, prompt, Ollama client).
+pydantic==2.14.3
+pydantic-settings==2.16.2
+httpx==0.28.1
