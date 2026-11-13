@@ -25,7 +25,13 @@ Either upload a zip of this repository and unzip it, or clone it:
 
 ```bash
 !pip install -q -r requirements-train.txt
+!pip uninstall -y torchaudio torchvision
 ```
+
+The pinned `torch` is built for a different CUDA version than Colab's preinstalled `torchaudio`,
+and `transformers` imports `torchaudio` when loading a model, which fails with "PyTorch and
+TorchAudio were compiled with different CUDA versions". Neither package is used here, so
+uninstalling them is the fix.
 
 `Qwen/Qwen2.5-0.5B-Instruct` is ungated, so no Hugging Face token is needed.
 
