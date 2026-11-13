@@ -25,13 +25,16 @@ Either upload a zip of this repository and unzip it, or clone it:
 
 ```bash
 !pip install -q -r requirements-train.txt
-!pip uninstall -y torchaudio torchvision
+!pip uninstall -y torchaudio torchvision torchao
 ```
 
-The pinned `torch` is built for a different CUDA version than Colab's preinstalled `torchaudio`,
-and `transformers` imports `torchaudio` when loading a model, which fails with "PyTorch and
-TorchAudio were compiled with different CUDA versions". Neither package is used here, so
-uninstalling them is the fix.
+Colab preinstalls packages that clash with the pinned versions, and none of them are used here:
+
+- `torchaudio`/`torchvision`: built for a different CUDA version than the pinned `torch`;
+  `transformers` imports `torchaudio` when loading a model and fails with "PyTorch and TorchAudio
+  were compiled with different CUDA versions".
+- `torchao`: version 0.10.0 is older than `peft` supports, so `train.py` fails with "Found an
+  incompatible version of torchao".
 
 `Qwen/Qwen2.5-0.5B-Instruct` is ungated, so no Hugging Face token is needed.
 
